@@ -1,18 +1,29 @@
 // This worker handles the CPU-intensive packing optimization
 import { PhysicsSolver } from '../physics/PhysicsSolver.js';
 
-class PackingWorker {
+export class PackingWorker {
   constructor() {
     this.physicsSolver = new PhysicsSolver();
+    this.postMessage = (typeof self !== 'undefined' && self.postMessage) 
+      ? self.postMessage.bind(self) 
+      : () => {}; // No-op if not in worker context
   }
 
   optimize(data) {
-    const { boxes, constraints, allowRotation, maxAttempts } = data;
+    const { boxes, constraints, allowRotation, maxAttempts, monteCarloConfig } = data;
     this.allowRotation = allowRotation;
+    
+    // Configuration for algorithm depth
+    this.mcConfig = monteCarloConfig || {
+       searchAttempts: 15, // High depth (Monte Carlo)
+       finalAttempts: 10,
+       useNoise: true
+    };
+    
     const startTime = performance.now();
     
     // Report start
-    self.postMessage({ type: 'progress', message: 'Initializing optimization...', progress: 0 });
+    this.postMessage({ type: 'progress', message: 'Initializing optimization...', progress: 0 });
 
     const result = this.findMinimumContainer(boxes, constraints);
 
@@ -85,7 +96,7 @@ class PackingWorker {
     let dimIndex = 0;
     for (const dim of unconstrainedDims) {
       dimIndex++;
-      self.postMessage({ 
+      this.postMessage({ 
         type: 'progress', 
         message: `Optimizing dimension: ${dim}...`, 
         progress: 10 + Math.floor((dimIndex / unconstrainedDims.length) * 40)
@@ -100,10 +111,20 @@ class PackingWorker {
       );
     }
     
-    self.postMessage({ type: 'progress', message: 'Finalizing packing...', progress: 60 });
+    this.postMessage({ type: 'progress', message: 'Finalizing packing (Monte Carlo)...', progress: 60 });
 
     // Final optimization attempt with found dimensions
-    let placedBoxes = this.attemptPacking(boxes, currentContainer, 0);
+    // Try multiple seeds and pick best
+    let bestPlaced = [];
+    // Loop based on config
+    const iterations = this.mcConfig.finalAttempts;
+    
+    for(let i=0; i < iterations; i++) {
+       const p = this.attemptPacking(boxes, currentContainer, i);
+       if(p.length > bestPlaced.length) bestPlaced = p;
+       if(bestPlaced.length === boxes.length) break;
+    }
+    let placedBoxes = bestPlaced;
     
     // Iterative expansion logic
     if (placedBoxes.length < boxes.length && unconstrainedDims.length > 0) {
@@ -112,7 +133,7 @@ class PackingWorker {
       
       while (placedBoxes.length < boxes.length && attempts < MAX_EXPANSION_ATTEMPTS) {
         attempts++;
-        self.postMessage({ 
+        this.postMessage({ 
             type: 'progress', 
             message: `Expanding container (Attempt ${attempts}/${MAX_EXPANSION_ATTEMPTS})...`, 
             progress: 60 + Math.floor((attempts / MAX_EXPANSION_ATTEMPTS) * 30)
@@ -126,7 +147,11 @@ class PackingWorker {
           }
         });
         
-        placedBoxes = this.attemptPacking(boxes, currentContainer, 0);
+        // Expansion uses simple single attempt to be fast? Or should it use MC?
+        // Let's stick to single attempt for expansion to avoid being too slow, 
+        // or maybe a small number. Original code used attemptPacking(..., 0).
+        // Let's use config.
+        placedBoxes = this.attemptPacking(boxes, currentContainer, 0); 
       }
     }
     
@@ -139,7 +164,7 @@ class PackingWorker {
       currentContainer[dim] = parseFloat(currentContainer[dim].toFixed(4));
     });
 
-    self.postMessage({ type: 'progress', message: 'Done!', progress: 100 });
+    this.postMessage({ type: 'progress', message: 'Done!', progress: 100 });
     return { container: currentContainer, placedBoxes };
   }
 
@@ -154,7 +179,10 @@ class PackingWorker {
       const testContainer = { ...baseContainer, [searchDim]: mid };
       
       let success = false;
-      for (let attempt = 0; attempt < 3; attempt++) {
+      // Monte Carlo Sampling or Single Pass
+      const attempts = this.mcConfig.searchAttempts; // 15 or 3
+      
+      for (let attempt = 0; attempt < attempts; attempt++) {
         const placed = this.attemptPacking(boxes, testContainer, attempt);
         if (placed.length === boxes.length) {
           success = true;
@@ -174,18 +202,34 @@ class PackingWorker {
   }
 
   attemptPacking(boxes, container, seed) {
-    const shuffledBoxes = [...boxes];
-    this.shuffleArray(shuffledBoxes, seed);
+    const boxList = [...boxes];
     
-    shuffledBoxes.sort((a, b) => {
-      const volA = a.width * a.height * a.depth;
-      const volB = b.width * b.height * b.depth;
-      return volB - volA;
+    // Deterministic Random Generator based on seed
+    const random = () => {
+        const x = Math.sin(seed + 1) * 10000;
+        seed++;
+        return x - Math.floor(x);
+    };
+
+    // Calculate Sort Key with Noise (Monte Carlo)
+    // If seed is 0, noise is 0 -> Pure Deterministic Volume Sort
+    const getScore = (box) => {
+        const volume = box.width * box.height * box.depth;
+        
+        // Use config for noise
+        const useNoise = this.mcConfig.useNoise;
+        const noise = (useNoise && seed > 0) ? (random() * 0.4 - 0.2) : 0;
+        
+        return volume * (1 + noise);
+    };
+
+    boxList.sort((a, b) => {
+      return getScore(b) - getScore(a);
     });
     
     const placedBoxes = [];
     
-    for (const box of shuffledBoxes) {
+    for (const box of boxList) {
       const placement = this.findPlacement(box, placedBoxes, container, seed);
       if (placement) {
         placedBoxes.push(placement);
@@ -396,13 +440,15 @@ class PackingWorker {
 // Worker interface
 const worker = new PackingWorker();
 
-self.onmessage = (e) => {
-  if (e.data.type === 'start') {
-    try {
-      const result = worker.optimize(e.data.params);
-      self.postMessage({ type: 'complete', result });
-    } catch (err) {
-      self.postMessage({ type: 'error', error: err.message });
+if (typeof self !== 'undefined') {
+  self.onmessage = (e) => {
+    if (e.data.type === 'start') {
+      try {
+        const result = worker.optimize(e.data.params);
+        self.postMessage({ type: 'complete', result });
+      } catch (err) {
+        self.postMessage({ type: 'error', error: err.message });
+      }
     }
-  }
-};
+  };
+}
