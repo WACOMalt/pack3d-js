@@ -94,12 +94,17 @@ export class PackingWorker {
 
     // Binary search on each unconstrained dimension
     let dimIndex = 0;
+    const totalDimProgressRange = 40; // 10% to 50%
+    const dimRange = totalDimProgressRange / unconstrainedDims.length;
+    
     for (const dim of unconstrainedDims) {
+      const dimStartProgress = 10 + (dimIndex * dimRange);
       dimIndex++;
+      
       this.postMessage({ 
         type: 'progress', 
         message: `Optimizing dimension: ${dim}...`, 
-        progress: 10 + Math.floor((dimIndex / unconstrainedDims.length) * 40)
+        progress: Math.floor(dimStartProgress)
       });
       
       currentContainer[dim] = this.binarySearchDimension(
@@ -107,11 +112,13 @@ export class PackingWorker {
         currentContainer,
         dim,
         maxBoxDims[dim],
-        Math.max(currentContainer[dim] * 3, maxBoxDims[dim] * 5)
+        Math.max(currentContainer[dim] * 3, maxBoxDims[dim] * 5),
+        dimStartProgress,
+        dimRange
       );
     }
     
-    this.postMessage({ type: 'progress', message: 'Finalizing packing (Monte Carlo)...', progress: 60 });
+    this.postMessage({ type: 'progress', message: 'Finalizing packing (Monte Carlo)...', progress: 50 });
 
     // Final optimization attempt with found dimensions
     // Try multiple seeds and pick best
@@ -120,6 +127,12 @@ export class PackingWorker {
     const iterations = this.mcConfig.finalAttempts;
     
     for(let i=0; i < iterations; i++) {
+       this.postMessage({ 
+           type: 'progress', 
+           message: `Finalizing packing (Seed ${i+1}/${iterations})...`, 
+           progress: 50 + Math.floor((i / iterations) * 10)
+       });
+
        const p = this.attemptPacking(boxes, currentContainer, i);
        if(p.length > bestPlaced.length) bestPlaced = p;
        if(bestPlaced.length === boxes.length) break;
@@ -168,14 +181,29 @@ export class PackingWorker {
     return { container: currentContainer, placedBoxes };
   }
 
-  binarySearchDimension(boxes, baseContainer, searchDim, minValue, maxValue) {
+  binarySearchDimension(boxes, baseContainer, searchDim, minValue, maxValue, progressBase, progressRange) {
     const epsilon = 0.05; 
     let low = minValue;
     let high = maxValue;
     let bestFit = high;
+    const initialRange = high - low;
     
     while (high - low > epsilon) {
       const mid = (low + high) / 2;
+      
+      // Update granular progress
+      if (progressBase !== undefined && progressRange !== undefined && initialRange > 0) {
+           const currentRange = high - low;
+           const percentComplete = 1 - (currentRange / initialRange);
+           const currentProgress = progressBase + (percentComplete * progressRange);
+           
+           this.postMessage({
+               type: 'progress', 
+               message: `Optimizing ${searchDim}: ${mid.toFixed(1)}...`,
+               progress: Math.floor(currentProgress)
+           });
+      }
+
       const testContainer = { ...baseContainer, [searchDim]: mid };
       
       let success = false;
