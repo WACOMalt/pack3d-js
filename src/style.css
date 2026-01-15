@@ -150,6 +150,27 @@ body {
 
 .box-list {
   margin-top: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 5px;
+  background-color: #222;
+}
+
+/* Scrollbar styling for box list */
+.box-list::-webkit-scrollbar {
+  width: 8px;
+}
+.box-list::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+.box-list::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 4px;
+}
+.box-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 /* Adjust box item for labels */

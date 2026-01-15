@@ -93,6 +93,7 @@ export class PackingOptimizer {
       params: {
         boxes,
         constraints,
+        allowRotation: this.appState.allowRotation,
         maxAttempts: 3
       }
     });

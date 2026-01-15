@@ -7,7 +7,8 @@ class PackingWorker {
   }
 
   optimize(data) {
-    const { boxes, constraints, maxAttempts } = data;
+    const { boxes, constraints, allowRotation, maxAttempts } = data;
+    this.allowRotation = allowRotation;
     const startTime = performance.now();
     
     // Report start
@@ -72,8 +73,8 @@ class PackingWorker {
       // If we have constraints, adjust estimate logic
       // Simplified: assume missing dims share remaining needed volume
       let volumeToDistribute = remainingVolume; 
-      // This is simpler to just replicate the original logic exactly
-      const volumePerDim = Math.pow(remainingVolume / constrainedVolume, 1 / unconstrainedDims.length);
+      // Reduce initial buffer from 1.5 to 1.1 for tighter starting estimates
+      const volumePerDim = Math.pow((totalVolume * 1.1) / constrainedVolume, 1 / unconstrainedDims.length);
       
       unconstrainedDims.forEach(dim => {
         currentContainer[dim] = Math.max(maxBoxDims[dim], Math.ceil(volumePerDim));
@@ -195,20 +196,54 @@ class PackingWorker {
   }
 
   findPlacement(box, placedBoxes, container, seed) {
-    const candidates = this.generateCandidatePositions(box, placedBoxes, container);
+    let candidates = [];
     
-    this.shuffleArray(candidates, seed + box.instanceId);
+    const orientations = this.allowRotation ? this.getUniqueOrientations(box) : [box];
+
+    for (const orientation of orientations) {
+      // Treat orientation like a box (has width, height, depth)
+      const orientationCandidates = this.generateCandidatePositions(orientation, placedBoxes, container);
+      
+      // Tag candidates with the dimensions used to generate them
+      orientationCandidates.forEach(c => {
+        c.width = orientation.width;
+        c.height = orientation.height;
+        c.depth = orientation.depth;
+      });
+      
+      candidates = candidates.concat(orientationCandidates);
+    }
+    
+    // Sort candidates: Bottom-Back-Left preference
+    // We remove random shuffling to ensure tightest corner packing
+    candidates.sort((a, b) => {
+      const epsilon = 0.001;
+      // 1. Gravity (lowest Y)
+      if (Math.abs(a.y - b.y) > epsilon) return a.y - b.y;
+      
+      // 2. Back-to-Front (lowest Z) - creates rows
+      if (Math.abs(a.z - b.z) > epsilon) return a.z - b.z;
+      
+      // 3. Left-to-Right (lowest X)
+      if (Math.abs(a.x - b.x) > epsilon) return a.x - b.x;
+      
+      return 0;
+    });
 
     for (const candidate of candidates) {
       const testBox = {
         ...box,
         x: candidate.x,
         y: candidate.y,
-        z: candidate.z
+        z: candidate.z,
+        // Apply rotation dimensions
+        width: candidate.width,
+        height: candidate.height,
+        depth: candidate.depth
       };
       
       // Gravity / Drop Logic preserved from original
-      if (candidate.y > box.height && !candidate.skipGravity) {
+      if (candidate.y > testBox.height && !candidate.skipGravity) {
         testBox.y = this.physicsSolver.dropBox(testBox, placedBoxes, container);
       }
       
@@ -218,6 +253,32 @@ class PackingWorker {
     }
     
     return null;
+  }
+
+  getUniqueOrientations(box) {
+    const { width: w, height: h, depth: d } = box;
+    const permutations = [
+      { width: w, height: h, depth: d },
+      { width: w, height: d, depth: h },
+      { width: h, height: w, depth: d },
+      { width: h, height: d, depth: w },
+      { width: d, height: w, depth: h },
+      { width: d, height: h, depth: w }
+    ];
+    
+    // Filter duplicates
+    const seen = new Set();
+    const unique = [];
+    
+    for (const p of permutations) {
+      const key = `${p.width},${p.height},${p.depth}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(p);
+      }
+    }
+    
+    return unique;
   }
 
   generateCandidatePositions(box, placedBoxes, container) {

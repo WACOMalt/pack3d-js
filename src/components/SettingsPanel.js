@@ -27,8 +27,7 @@ export class SettingsPanel {
       <div class="dimension-constraints">
         <div class="constraint-group">
           <input type="checkbox" id="constrain-width" 
-                 ${containerConstraints.width !== null ? 'checked' : ''}
-                 ${constrainedCount >= 2 && containerConstraints.width === null ? 'disabled' : ''}>
+                 ${containerConstraints.width !== null ? 'checked' : ''}>
           <label for="constrain-width">Width</label>
           <input type="number" id="container-width" 
                  value="${containerConstraints.width !== null ? containerConstraints.width : ''}" 
@@ -40,8 +39,7 @@ export class SettingsPanel {
         </div>
         <div class="constraint-group">
           <input type="checkbox" id="constrain-height" 
-                 ${containerConstraints.height !== null ? 'checked' : ''}
-                 ${constrainedCount >= 2 && containerConstraints.height === null ? 'disabled' : ''}>
+                 ${containerConstraints.height !== null ? 'checked' : ''}>
           <label for="constrain-height">Height</label>
           <input type="number" id="container-height" 
                  value="${containerConstraints.height !== null ? containerConstraints.height : ''}" 
@@ -53,8 +51,7 @@ export class SettingsPanel {
         </div>
         <div class="constraint-group">
           <input type="checkbox" id="constrain-depth" 
-                 ${containerConstraints.depth !== null ? 'checked' : ''}
-                 ${constrainedCount >= 2 && containerConstraints.depth === null ? 'disabled' : ''}>
+                 ${containerConstraints.depth !== null ? 'checked' : ''}>
           <label for="constrain-depth">Depth</label>
           <input type="number" id="container-depth" 
                  value="${containerConstraints.depth !== null ? containerConstraints.depth : ''}" 
@@ -72,6 +69,12 @@ export class SettingsPanel {
         </div>
       ` : ''}
       
+      <h3>Optimization</h3>
+      <div class="constraint-group">
+        <input type="checkbox" id="allow-rotation" ${this.appState.allowRotation ? 'checked' : ''}>
+        <label for="allow-rotation">Allow Box Rotation (90° steps)</label>
+      </div>
+
       <h3>Boxes</h3>
       <div class="box-list" id="box-list">
         ${boxes.map(box => this.renderBoxItem(box)).join('')}
@@ -80,6 +83,10 @@ export class SettingsPanel {
         <span>+</span> Add Box
       </button>
       
+      <button class="clear-boxes-btn" id="clear-boxes-btn" style="margin-top: 8px; background-color: #ef4444; width: 100%; padding: 10px; border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: bold;">
+        Clear All Boxes
+      </button>
+
       <button class="optimize-btn" id="optimize-btn" ${this.appState.isOptimizing ? 'disabled' : ''}>
         ${this.appState.isOptimizing ? 'Optimizing...' : 'Optimize Packing'}
       </button>
@@ -184,12 +191,31 @@ export class SettingsPanel {
       });
     });
     
+    // Rotation toggle
+    const rotationCheckbox = document.getElementById('allow-rotation');
+    if (rotationCheckbox) {
+      rotationCheckbox.addEventListener('change', (e) => {
+        this.appState.setAllowRotation(e.target.checked);
+      });
+    }
+
     // Add box button
     document.getElementById('add-box-btn').addEventListener('click', () => {
       this.appState.addBox();
       this.render(); // Re-render to show new box
     });
     
+    // Clear boxes button
+    const clearBtn = document.getElementById('clear-boxes-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear all boxes?')) {
+          this.appState.clearBoxes();
+          this.render();
+        }
+      });
+    }
+
     // Box item changes and removal
     document.querySelectorAll('.box-item').forEach(item => {
       const boxId = parseInt(item.dataset.boxId);

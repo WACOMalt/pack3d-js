@@ -14,6 +14,8 @@ export class AppState {
       depth: 20
     };
     
+    this.allowRotation = true;
+
     this.boxes = [
       { id: 1, width: 1, height: 1, depth: 1, quantity: 1 }
     ];
@@ -47,6 +49,12 @@ export class AppState {
     this.container = { ...this.container, ...dimensions };
     this.notify();
   }
+
+  // Toggle rotation setting
+  setAllowRotation(allow) {
+    this.allowRotation = allow;
+    this.notify();
+  }
   
   // Get count of constrained dimensions
   getConstrainedDimensionCount() {
@@ -77,6 +85,12 @@ export class AppState {
   // Remove a box definition
   removeBox(id) {
     this.boxes = this.boxes.filter(b => b.id !== id);
+    this.notify();
+  }
+
+  // Clear all boxes
+  clearBoxes() {
+    this.boxes = [];
     this.notify();
   }
   
