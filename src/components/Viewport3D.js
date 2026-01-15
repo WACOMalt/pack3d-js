@@ -36,6 +36,8 @@ export class Viewport3D {
     
     // Add grid helper
     const gridHelper = new THREE.GridHelper(200, 20, 0x444444, 0x222222);
+    // Lower grid slightly to avoid z-fighting with container bottom
+    gridHelper.position.y = -0.05;
     this.scene.add(gridHelper);
   }
   
