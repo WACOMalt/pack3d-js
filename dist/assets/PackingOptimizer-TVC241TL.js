@@ -1,0 +1,9 @@
+class w{constructor(o){this.appState=o}optimize(){const o=this.appState.getExpandedBoxes(),c=this.appState.containerConstraints;let e=document.querySelector(".optimization-modal");e||(e=document.createElement("div"),e.className="optimization-modal",document.body.appendChild(e)),e.style.display="flex",requestAnimationFrame(()=>e.style.opacity="1"),e.innerHTML=`
+      <div class="optimization-content">
+        <h3>Optimizing Layout...</h3>
+        <p id="opt-status-text">Initializing...</p>
+        <div class="progress-bar">
+          <div class="progress-fill" id="opt-progress" style="width: 0%"></div>
+        </div>
+      </div>
+    `;const r=new Worker(new URL(""+new URL("optimizer.worker-DQ5pmxqj.js",import.meta.url).href,import.meta.url),{type:"module"});r.onmessage=l=>{const{type:i,message:d,progress:m,result:t,error:a}=l.data;if(i==="progress"){const s=document.getElementById("opt-status-text"),n=document.getElementById("opt-progress");s&&(s.textContent=d),n&&(n.style.width=`${m}%`)}if(i==="complete"||i==="error"){if(setTimeout(()=>{e.style.opacity="0",setTimeout(()=>{e.parentNode&&e.remove()},300)},500),r.terminate(),i==="error"||t&&!t.success){console.error(a||t&&t.error),this.appState.setPlacedBoxes([],{placedCount:0,totalBoxes:o.length,volumeUtilization:0,timeMs:0,error:typeof a=="string"?a:t&&t.error||"Unknown error"});return}this.appState.updateContainer(t.container);const s=o.length,n=t.placedBoxes.length,u=t.placedBoxes.reduce((y,p)=>y+p.width*p.height*p.depth,0),h=t.container.width*t.container.height*t.container.depth,g=u/h*100,x={placedCount:n,totalBoxes:s,volumeUtilization:g,timeMs:t.executionTime,containerSize:`${t.container.width} × ${t.container.height} × ${t.container.depth}`};this.appState.setPlacedBoxes(t.placedBoxes,x)}},r.postMessage({type:"start",params:{boxes:o,constraints:c,maxAttempts:3}})}}export{w as PackingOptimizer};

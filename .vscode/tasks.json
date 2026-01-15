@@ -1,0 +1,77 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "append_css",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"src/style.css",
+				"\n.status-message {\n  margin-top: 15px;\n  padding: 12px;\n  background-color: #1e293b;\n  border: 1px solid #334155;\n  border-radius: 6px;\n  font-size: 0.9rem;\n}\n\n.status-message strong {\n  display: block;\n  margin-bottom: 8px;\n  color: #60a5fa;\n  font-size: 1rem;\n}\n\n.stat-row {\n  display: flex;\n  justify-content: space-between;\n  margin-bottom: 4px;\n  color: #cbd5e1;\n}\n\n.stat-bar-container {\n  display: flex;\n  height: 8px;\n  width: 100%;\n  background-color: #334155;\n  border-radius: 4px;\n  overflow: hidden;\n  margin: 8px 0;\n}\n\n.stat-bar-fill {\n  height: 100%;\n}\n\n.stat-bar-fill.used {\n  background-color: #10b981;\n}\n\n.stat-bar-fill.empty {\n  background-color: #ef4444;\n}\n\n.time-row {\n  margin-top: 8px;\n  font-size: 0.8rem;\n  color: #94a3b8;\n  border-top: 1px solid #334155;\n  padding-top: 4px;\n}\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		},
+		{
+			"label": "append_css_header",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"src/style.css",
+				"\n.box-list-header {\n  display: flex;\n  gap: 10px;\n  padding: 0 10px 5px;\n  font-size: 0.8rem;\n  color: #94a3b8;\n  font-weight: 600;\n  margin-bottom: 5px;\n  border-bottom: 1px solid #334155;\n}\n\n.box-list-header span {\n   text-align: center;\n}\n\n/* Match widths with renderBoxItem inputs */\n.col-w, .col-h, .col-d {\n  width: 50px;\n}\n.col-q {\n  width: 80px; \n  flex-grow: 1;\n}\n.col-x {\n  width: 24px;\n}\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		},
+		{
+			"label": "append_css_retry",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"src/style.css",
+				"\n.box-list-header {\n  display: flex;\n  gap: 8px; /* Matched to box-item gap */\n  padding: 0 10px 5px;\n  font-size: 0.8rem;\n  color: #94a3b8;\n  font-weight: 600;\n  margin-bottom: 5px;\n  border-bottom: 1px solid #334155;\n}\n\n.box-list-header span {\n   text-align: center;\n}\n\n/* Match widths with renderBoxItem inputs */\n.col-w, .col-h, .col-d {\n  width: 50px;\n}\n.col-q {\n  width: 50px; \n  flex-grow: 1;\n}\n.col-x {\n  width: 24px;\n}\n.failure-reason {\n  color: #ef4444;\n  font-size: 0.8rem;\n  margin-bottom: 8px;\n  padding-bottom: 8px;\n  border-bottom: 1px dashed #4b5563;\n}\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		},
+		{
+			"label": "append_css_labels",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"src/style.css",
+				"\n/* Adjust box item for labels */\n.box-item {\n  display: flex;\n  align-items: center;\n  gap: 5px; /* Tighter gap */\n  padding: 8px; /* Slightly tighter padding */\n  flex-wrap: wrap; /* Allow wrapping on very small screens */\n}\n\n.box-label {\n  font-size: 0.8rem;\n  color: #94a3b8;\n  font-weight: 600;\n  user-select: none;\n}\n\n.box-label.x-label {\n  margin-left: 4px;\n  margin-right: 0px;\n  color: #60a5fa;\n  font-size: 1rem;\n}\n\n/* Update inputs to fit with labels */\n.box-item input {\n  width: 45px; /* Slightly smaller width */\n  padding: 4px 6px;\n  text-align: center;\n}\n\n.box-item input.box-quantity {\n    width: 50px;\n}\n\n.remove-box-btn {\n    margin-left: auto;\n}\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		},
+		{
+			"label": "append_css_modal",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"src/style.css",
+				"\n/* Modal Styles */\n.optimization-modal {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100vw;\n  height: 100vh;\n  background-color: rgba(0, 0, 0, 0.7);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: 1000;\n  opacity: 0;\n  transition: opacity 0.3s ease;\n}\n\n.optimization-content {\n  background-color: #1e293b;\n  padding: 30px;\n  border-radius: 8px;\n  border: 1px solid #475569;\n  text-align: center;\n  min-width: 300px;\n  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);\n}\n\n.optimization-content h3 {\n  margin-bottom: 15px;\n  color: #60a5fa;\n  font-size: 1.2rem;\n}\n\n.optimization-content p {\n  margin-bottom: 20px;\n  color: #cbd5e1;\n  font-size: 0.95rem;\n}\n\n.progress-bar {\n  width: 100%;\n  height: 10px;\n  background-color: #334155;\n  border-radius: 5px;\n  overflow: hidden;\n}\n\n.progress-fill {\n  height: 100%;\n  background-color: #3b82f6;\n  width: 0%;\n  transition: width 0.3s ease;\n}\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		},
+		{
+			"label": "append_css_spinners",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"src/style.css",
+				"\n/* Remove spinners from number inputs */\n/* Chrome, Safari, Edge, Opera */\ninput[type=number]::-webkit-outer-spin-button,\ninput[type=number]::-webkit-inner-spin-button {\n  -webkit-appearance: none;\n  margin: 0;\n}\n\n/* Firefox */\ninput[type=number] {\n  -moz-appearance: textfield;\n}\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		}
+	]
+}
